@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validação de Usuário</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card-machine {
+      background-color: #ffffff;
+      border-radius: 15px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+      width: 360px;
+      padding: 25px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-slot {
+      height: 8px;
+      background-color: #333;
+      margin-bottom: 20px;
+      border-radius: 0 0 8px 8px;
+      position: relative;
+    }
+
+    .card-slot::after {
+      content: "";
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 50px;
+      background: linear-gradient(135deg, #ff6b6b, #feca57);
+      border-radius: 5px;
+      transition: top 0.5s ease;
+    }
+
+    .card-inserted .card-slot::after {
+      top: 0;
+    }
+
+    .display {
+      background-color: #f1f1f1;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      min-height: 70px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .message {
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .password-display {
+      letter-spacing: 4px;
+      font-size: 1.3em;
+      color: #555;
+    }
+
+    .keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    button {
+      padding: 15px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .number-btn {
+      background-color: #4f83cc;
+      color: white;
+    }
+
+    .number-btn:hover {
+      background-color: #3a66a3;
+    }
+
+    .action-btn {
+      background-color: #28a745;
+      color: white;
+    }
+
+    .action-btn:hover {
+      background-color: #218838;
+    }
+
+    .cancel-btn {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .cancel-btn:hover {
+      background-color: #c82333;
+    }
+
+    .blocked {
+      pointer-events: none;
+      opacity: 0.5;
+      filter: grayscale(70%);
+    }
+
+    .shake {
+      animation: shake 0.3s;
+    }
+
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      50% { transform: translateX(5px); }
+      75% { transform: translateX(-5px); }
+      100% { transform: translateX(0); }
+    }
+
+    .press {
+      transform: scale(0.95);
+    }
+  </style>
+</head>
+<body>
+  <div class="card-machine">
+    <div class="card-slot"></div>
+    <div class="display">
+      <div class="message">Por favor, insira seu cartão</div>
+      <div class="password-display"></div>
+    </div>
+    <div class="keypad">
+      <button class="number-btn" data-number="1"><i class="fas fa-1"></i></button>
+      <button class="number-btn" data-number="2"><i class="fas fa-2"></i></button>
+      <button class="number-btn" data-number="3"><i class="fas fa-3"></i></button>
+      <button class="number-btn" data-number="4"><i class="fas fa-4"></i></button>
+      <button class="number-btn" data-number="5"><i class="fas fa-5"></i></button>
+      <button class="number-btn" data-number="6"><i class="fas fa-6"></i></button>
+      <button class="number-btn" data-number="7"><i class="fas fa-7"></i></button>
+      <button class="number-btn" data-number="8"><i class="fas fa-8"></i></button>
+      <button class="number-btn" data-number="9"><i class="fas fa-9"></i></button>
+      <button class="cancel-btn"><i class="fas fa-times"></i></button>
+      <button class="number-btn" data-number="0"><i class="fas fa-0"></i></button>
+      <button class="action-btn"><i class="fas fa-check"></i></button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const machine = document.querySelector('.card-machine');
+      const cardSlot = document.querySelector('.card-slot');
+      const messageEl = document.querySelector('.message');
+      const passwordDisplay = document.querySelector('.password-display');
+      const numberBtns = document.querySelectorAll('.number-btn');
+      const enterBtn = document.querySelector('.action-btn');
+      const cancelBtn = document.querySelector('.cancel-btn');
+      
+      let cardInserted = false;
+      let password = '';
+      let attempts = 0;
+      let blocked = false;
+
+      cardSlot.addEventListener('click', function() {
+        if (!cardInserted && !blocked) {
+          machine.classList.add('card-inserted');
+          cardInserted = true;
+          messageEl.textContent = 'Por favor, digite sua senha';
+        }
+      });
+
+      numberBtns.forEach(btn => {
+        btn.addEventListener('mousedown', () => btn.classList.add('press'));
+        btn.addEventListener('mouseup', () => btn.classList.remove('press'));
+
+        btn.addEventListener('click', function() {
+          if (cardInserted && !blocked) {
+            password += this.getAttribute('data-number');
+            updatePasswordDisplay();
+          }
+        });
+      });
+
+      enterBtn.addEventListener('mousedown', () => enterBtn.classList.add('press'));
+      enterBtn.addEventListener('mouseup', () => enterBtn.classList.remove('press'));
+
+      enterBtn.addEventListener('click', function() {
+        if (cardInserted && !blocked) {
+          validatePassword();
+        }
+      });
+
+      cancelBtn.addEventListener('mousedown', () => cancelBtn.classList.add('press'));
+      cancelBtn.addEventListener('mouseup', () => cancelBtn.classList.remove('press'));
+
+      cancelBtn.addEventListener('click', function() {
+        resetTransaction();
+        messageEl.textContent = 'Operação cancelada. Por favor, insira seu cartão.';
+      });
+
+      function updatePasswordDisplay() {
+        passwordDisplay.textContent = '*'.repeat(password.length);
+      }
+
+      function validatePassword() {
+        if (password === '1234') {
+          messageEl.textContent = 'Acesso autorizado. Retire seu cartão.';
+          setTimeout(() => {
+            resetTransaction();
+            messageEl.textContent = 'Transação concluída com sucesso!';
+            setTimeout(() => {
+              messageEl.textContent = 'Por favor, insira seu cartão';
+            }, 2000);
+          }, 1500);
+        } else {
+          attempts++;
+          machine.classList.add('shake');
+          setTimeout(() => machine.classList.remove('shake'), 300);
+
+          if (attempts >= 3) {
+            blockMachine();
+            messageEl.textContent = 'Senha inválida 3 vezes. Cartão retido. Tente novamente em 2 minutos.';
+          } else {
+            messageEl.textContent = `Senha inválida. Tentativa ${attempts} de 3. Retire seu cartão.`;
+            setTimeout(() => {
+              resetTransaction(false);
+              messageEl.textContent = 'Por favor, insira seu cartão novamente';
+            }, 1500);
+          }
+        }
+      }
+
+      function resetTransaction(resetAttempts = true) {
+        machine.classList.remove('card-inserted');
+        cardInserted = false;
+        password = '';
+        passwordDisplay.textContent = '';
+        if (resetAttempts) {
+          attempts = 0;
+        }
+      }
+
+      function blockMachine() {
+        blocked = true;
+        machine.classList.add('blocked');
+        resetTransaction();
+        setTimeout(() => {
+          blocked = false;
+          machine.classList.remove('blocked');
+          messageEl.textContent = 'Por favor, insira seu cartão';
+        }, 120000);
+      }
+    });
+  </script>
+</body>
+</html>
